@@ -3,11 +3,11 @@ set -e
 
 echo "==> Starting Medical Supplies Laravel Server..."
 
-# 1. Determine Port (Default to 80 if not provided by Railway)
+# 1. Determine Port
 PORT="${PORT:-80}"
 echo "==> Using Port: $PORT"
 
-# 2. Pass PORT and APACHE variables to Apache's environment file
+# 2. Pass PORT to Apache's environment
 echo "export PORT=$PORT" >> /etc/apache2/envvars
 
 # 3. Ensure APP_KEY
@@ -28,12 +28,9 @@ if [ -n "$DB_HOST" ]; then
     php artisan migrate --force || echo "==> Migrations will run on demand"
 fi
 
-# 6. Clear caches to ensure smooth operation
+# 6. Clear caches
 php artisan optimize:clear || true
 
-# 7. Test Apache Configuration
-apachectl configtest || true
-
-# 8. Start Apache in foreground
+# 7. Start Apache in foreground
 echo "==> Launching Apache on port $PORT..."
-exec apache2-foreground
+exec /usr/local/bin/apache2-foreground

@@ -26,8 +26,9 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Ensure only mpm_prefork is enabled and enable mod_rewrite
+RUN a2dismod mpm_event mpm_worker 2>/dev/null || true \
+    && a2enmod mpm_prefork rewrite
 
 # Set working directory
 WORKDIR /var/www/html
@@ -35,7 +36,7 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . .
 
-# Copy custom Apache configurations with native ${PORT} support
+# Copy custom Apache configurations
 COPY docker/ports.conf /etc/apache2/ports.conf
 COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
 
