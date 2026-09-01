@@ -24,14 +24,14 @@ DB_PASS_VAL="${DB_PASSWORD:-${MYSQLPASSWORD:-${MYSQL_PASSWORD:-}}}"
 
 echo "==> Database target: $DB_USER_VAL@$DB_HOST_VAL:$DB_PORT_VAL/$DB_NAME_VAL"
 
-# 4. Create / Update .env file with robust Session & Cookie settings
+# 4. Create / Update .env file
 echo "==> Generating production .env file..."
 cat <<EOF > /var/www/html/.env
-APP_NAME="ระบบบริหารคลังเวชภัณฑ์ มรภ.นครศรีธรรมราช"
+APP_NAME="Medical Supplies System"
 APP_ENV=${APP_ENV:-production}
 APP_KEY=${APP_KEY:-base64:rRXZZCi7D+kBcVU2IKlXwXlYpXqTmHxeE/Edw02eK4A=}
 APP_DEBUG=${APP_DEBUG:-true}
-APP_URL=${APP_URL:-http://localhost}
+APP_URL=https://medicalll-production.up.railway.app
 
 LOG_CHANNEL=stack
 LOG_LEVEL=debug
@@ -47,9 +47,11 @@ BROADCAST_DRIVER=log
 CACHE_DRIVER=file
 FILESYSTEM_DISK=public
 QUEUE_CONNECTION=sync
-SESSION_DRIVER=cookie
+SESSION_DRIVER=file
 SESSION_LIFETIME=120
+SESSION_COOKIE=medical_supplies_session
 SESSION_SECURE_COOKIE=false
+SESSION_SAME_SITE=lax
 EOF
 
 # 5. Storage permissions and symlink
