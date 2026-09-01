@@ -24,7 +24,7 @@ DB_PASS_VAL="${DB_PASSWORD:-${MYSQLPASSWORD:-${MYSQL_PASSWORD:-}}}"
 
 echo "==> Database target: $DB_USER_VAL@$DB_HOST_VAL:$DB_PORT_VAL/$DB_NAME_VAL"
 
-# 4. Create / Update .env file
+# 4. Create / Update .env file (Use stderr for container logging to prevent file lock)
 echo "==> Generating production .env file..."
 cat <<EOF > /var/www/html/.env
 APP_NAME="Medical Supplies System"
@@ -33,7 +33,7 @@ APP_KEY=${APP_KEY:-base64:rRXZZCi7D+kBcVU2IKlXwXlYpXqTmHxeE/Edw02eK4A=}
 APP_DEBUG=${APP_DEBUG:-true}
 APP_URL=https://medicalll-production.up.railway.app
 
-LOG_CHANNEL=stack
+LOG_CHANNEL=stderr
 LOG_LEVEL=debug
 
 DB_CONNECTION=${DB_CONNECTION:-mysql}
@@ -54,10 +54,11 @@ SESSION_SECURE_COOKIE=false
 SESSION_SAME_SITE=lax
 EOF
 
-# 5. Storage permissions and symlink
+# 5. Storage permissions and symlink (Ensure www-data owns all logs and cache)
 mkdir -p /var/www/html/storage/framework/{sessions,views,cache,data} /var/www/html/storage/logs /var/www/html/public/images/supplies
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/.env
+touch /var/www/html/storage/logs/laravel.log
 chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/.env
 
 php artisan storage:link --force || true
 
@@ -67,6 +68,10 @@ php artisan migrate --seed --force || php artisan migrate --force || echo "==> M
 
 # 7. Clear old cache to apply fresh settings
 php artisan optimize:clear || true
+
+# Final permission ensure before starting Apache
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # 8. Start Apache in foreground
 echo "==> Launching Apache Web Server..."
