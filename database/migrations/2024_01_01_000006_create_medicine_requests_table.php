@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('request_number')->unique();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->text('symptoms');
-            $table->enum('status', ['pending', 'approved', 'rejected', 'dispensed'])->default('pending');
+            $table->string('status')->default('pending');
             $table->text('staff_notes')->nullable();
             $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamp('approved_at')->nullable();

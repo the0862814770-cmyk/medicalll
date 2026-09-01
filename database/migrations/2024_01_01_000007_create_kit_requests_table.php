@@ -17,7 +17,7 @@ return new class extends Migration
             $table->date('borrow_date');
             $table->date('expected_return_date');
             $table->date('actual_return_date')->nullable();
-            $table->enum('status', ['pending', 'approved', 'borrowed', 'return_pending', 'returned', 'rejected'])->default('pending');
+            $table->string('status')->default('pending');
             $table->text('notes')->nullable();
             $table->foreignId('approved_by')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
