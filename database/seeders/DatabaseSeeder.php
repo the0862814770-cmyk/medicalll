@@ -16,61 +16,76 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         // ===== ผู้ใช้ตัวอย่าง =====
-        User::create([
-            'name' => 'ผู้ดูแลระบบ',
-            'email' => 'admin@nstru.ac.th',
-            'password' => Hash::make('password'),
-            'role' => 'admin',
-            'status' => 'active',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@nstru.ac.th'],
+            [
+                'name' => 'ผู้ดูแลระบบ',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'status' => 'active',
+            ]
+        );
 
-        User::create([
-            'name' => 'สมศรี รักพยาบาล',
-            'email' => 'staff@nstru.ac.th',
-            'password' => Hash::make('password'),
-            'role' => 'staff',
-            'phone' => '081-234-5678',
-            'status' => 'active',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'staff@nstru.ac.th'],
+            [
+                'name' => 'สมศรี รักพยาบาล',
+                'password' => Hash::make('password'),
+                'role' => 'staff',
+                'phone' => '081-234-5678',
+                'status' => 'active',
+            ]
+        );
 
-        User::create([
-            'name' => 'ดร.สมชาย ผู้บริหาร',
-            'email' => 'executive@nstru.ac.th',
-            'password' => Hash::make('password'),
-            'role' => 'executive',
-            'phone' => '082-345-6789',
-            'status' => 'active',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'executive@nstru.ac.th'],
+            [
+                'name' => 'ดร.สมชาย ผู้บริหาร',
+                'password' => Hash::make('password'),
+                'role' => 'executive',
+                'phone' => '082-345-6789',
+                'status' => 'active',
+            ]
+        );
 
-        User::create([
-            'name' => 'สมหญิง ใจดี',
-            'email' => 'user@nstru.ac.th',
-            'password' => Hash::make('password'),
-            'role' => 'user',
-            'student_id' => '6401012345',
-            'phone' => '083-456-7890',
-            'status' => 'active',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'user@nstru.ac.th'],
+            [
+                'name' => 'สมหญิง ใจดี',
+                'password' => Hash::make('password'),
+                'role' => 'user',
+                'student_id' => '6401012345',
+                'phone' => '083-456-7890',
+                'status' => 'active',
+            ]
+        );
 
-        User::create([
-            'name' => 'สมชาย เรียนดี',
-            'email' => 'user2@nstru.ac.th',
-            'password' => Hash::make('password'),
-            'role' => 'user',
-            'student_id' => '6401012346',
-            'phone' => '084-567-8901',
-            'status' => 'active',
-        ]);
+        User::firstOrCreate(
+            ['email' => 'user2@nstru.ac.th'],
+            [
+                'name' => 'สมชาย เรียนดี',
+                'password' => Hash::make('password'),
+                'role' => 'user',
+                'student_id' => '6401012346',
+                'phone' => '084-567-8901',
+                'status' => 'active',
+            ]
+        );
 
         // ===== หมวดหมู่ =====
-        $categories = [
-            Category::create(['name' => 'ยาสามัญ', 'description' => 'ยาสามัญทั่วไป']),
-            Category::create(['name' => 'ยาแก้ปวดลดไข้', 'description' => 'ยาแก้ปวด ลดไข้']),
-            Category::create(['name' => 'ยาทาภายนอก', 'description' => 'ยาทาแผล ครีม ขี้ผึ้ง']),
-            Category::create(['name' => 'วัสดุทำแผล', 'description' => 'ผ้าพันแผล พลาสเตอร์ สำลี']),
-            Category::create(['name' => 'อุปกรณ์ปฐมพยาบาล', 'description' => 'ปรอท ถุงมือ กรรไกร']),
-            Category::create(['name' => 'ยาระบบทางเดินอาหาร', 'description' => 'ยาแก้ท้องเสีย ยาลดกรด']),
+        $rawCategories = [
+            ['name' => 'ยาสามัญ', 'description' => 'ยาสามัญทั่วไป'],
+            ['name' => 'ยาแก้ปวดลดไข้', 'description' => 'ยาแก้ปวด ลดไข้'],
+            ['name' => 'ยาทาภายนอก', 'description' => 'ยาทาแผล ครีม ขี้ผึ้ง'],
+            ['name' => 'วัสดุทำแผล', 'description' => 'ผ้าพันแผล พลาสเตอร์ สำลี'],
+            ['name' => 'อุปกรณ์ปฐมพยาบาล', 'description' => 'ปรอท ถุงมือ กรรไกร'],
+            ['name' => 'ยาระบบทางเดินอาหาร', 'description' => 'ยาแก้ท้องเสีย ยาลดกรด'],
         ];
+
+        $categories = [];
+        foreach ($rawCategories as $cat) {
+            $categories[] = Category::firstOrCreate(['name' => $cat['name']], ['description' => $cat['description']]);
+        }
 
         // ===== เวชภัณฑ์ =====
         $categoryColors = ['#2563eb', '#dc2626', '#16a34a', '#ea580c', '#7c3aed', '#0891b2'];
@@ -98,47 +113,34 @@ class DatabaseSeeder extends Seeder
             $color = $categoryColors[$supplyData['category']];
             $imagePath = $this->ensureSupplyImage($supplyData['code'], $supplyData['name'], $color);
 
-            $supply = Supply::create([
-                'category_id' => $categories[$supplyData['category']]->id,
-                'code' => $supplyData['code'],
-                'name' => $supplyData['name'],
-                'unit' => $supplyData['unit'],
-                'min_stock' => $supplyData['min_stock'],
-                'image' => $imagePath,
-            ]);
+            $supply = Supply::firstOrCreate(
+                ['code' => $supplyData['code']],
+                [
+                    'category_id' => $categories[$supplyData['category']]->id,
+                    'name' => $supplyData['name'],
+                    'unit' => $supplyData['unit'],
+                    'min_stock' => $supplyData['min_stock'],
+                    'image' => $imagePath,
+                ]
+            );
 
-            // สร้าง lot ตัวอย่าง
-            SupplyLot::create([
-                'supply_id' => $supply->id,
-                'lot_number' => 'LOT' . date('Y') . str_pad($supply->id, 3, '0', STR_PAD_LEFT),
-                'quantity' => rand(50, 500),
-                'remaining_quantity' => rand(30, 300),
-                'expiry_date' => now()->addMonths(rand(3, 24)),
-                'received_date' => now()->subDays(rand(1, 90)),
-            ]);
+            if ($supply->wasRecentlyCreated) {
+                // สร้าง lot ตัวอย่างเฉพาะตอนสร้างใหม่
+                SupplyLot::create([
+                    'supply_id' => $supply->id,
+                    'lot_number' => 'LOT' . date('Y') . str_pad($supply->id, 3, '0', STR_PAD_LEFT),
+                    'quantity' => rand(50, 500),
+                    'remaining_quantity' => rand(30, 300),
+                    'expiry_date' => now()->addMonths(rand(3, 24)),
+                    'received_date' => now()->subDays(rand(1, 90)),
+                ]);
+            }
         }
 
         // ===== กระเป๋าปฐมพยาบาล =====
-        $kit1 = FirstAidKit::create([
-            'kit_code' => 'KIT001',
-            'name' => 'กระเป๋าปฐมพยาบาลชุดเล็ก',
-            'status' => 'available',
-            'description' => 'สำหรับกิจกรรมขนาดเล็ก 10-30 คน',
-        ]);
-
-        $kit2 = FirstAidKit::create([
-            'kit_code' => 'KIT002',
-            'name' => 'กระเป๋าปฐมพยาบาลชุดกลาง',
-            'status' => 'available',
-            'description' => 'สำหรับกิจกรรมขนาดกลาง 30-100 คน',
-        ]);
-
-        $kit3 = FirstAidKit::create([
-            'kit_code' => 'KIT003',
-            'name' => 'กระเป๋าปฐมพยาบาลชุดใหญ่',
-            'status' => 'available',
-            'description' => 'สำหรับค่ายอาสาพัฒนาหรือกิจกรรมขนาดใหญ่',
-        ]);
+        $kit1 = FirstAidKit::firstOrCreate(['kit_code' => 'KIT001'], ['name' => 'กระเป๋าปฐมพยาบาลชุดเล็ก', 'status' => 'available', 'description' => 'สำหรับกิจกรรมขนาดเล็ก 10-30 คน']);
+        $kit2 = FirstAidKit::firstOrCreate(['kit_code' => 'KIT002'], ['name' => 'กระเป๋าปฐมพยาบาลชุดกลาง', 'status' => 'available', 'description' => 'สำหรับกิจกรรมขนาดกลาง 30-100 คน']);
+        $kit3 = FirstAidKit::firstOrCreate(['kit_code' => 'KIT003'], ['name' => 'กระเป๋าปฐมพยาบาลชุดใหญ่', 'status' => 'available', 'description' => 'สำหรับค่ายอาสาพัฒนาหรือกิจกรรมขนาดใหญ่']);
 
         // ใส่รายการยาในกระเป๋าตัวอย่าง
         $allSupplies = Supply::all();
