@@ -18,7 +18,9 @@ return new class extends Migration
             }
         });
 
-        DB::statement("ALTER TABLE medicine_requests MODIFY status ENUM('pending', 'executive_approved', 'approved', 'rejected', 'dispensed') NOT NULL DEFAULT 'pending'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE medicine_requests MODIFY status ENUM('pending', 'executive_approved', 'approved', 'rejected', 'dispensed') NOT NULL DEFAULT 'pending'");
+        }
 
         Schema::table('kit_requests', function (Blueprint $table) {
             if (!Schema::hasColumn('kit_requests', 'executive_approved_by')) {
@@ -29,7 +31,9 @@ return new class extends Migration
             }
         });
 
-        DB::statement("ALTER TABLE kit_requests MODIFY status ENUM('pending', 'executive_approved', 'approved', 'borrowed', 'return_pending', 'returned', 'rejected') NOT NULL DEFAULT 'pending'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE kit_requests MODIFY status ENUM('pending', 'executive_approved', 'approved', 'borrowed', 'return_pending', 'returned', 'rejected') NOT NULL DEFAULT 'pending'");
+        }
     }
 
     public function down()
