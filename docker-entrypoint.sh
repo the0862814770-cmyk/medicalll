@@ -15,14 +15,30 @@ PORT="${PORT:-80}"
 echo "==> Using Port: $PORT"
 echo "export PORT=$PORT" >> /etc/apache2/envvars
 
-# 3. Setup Embedded Database (SQLite)
-echo "==> Initializing embedded database..."
-mkdir -p /var/www/html/database
-touch /var/www/html/database/database.sqlite
-chmod 777 /var/www/html/database /var/www/html/database/database.sqlite
+# 3. Detect Database (MySQL vs SQLite)
+if [ -n "$MYSQLHOST" ] || [ -n "$MYSQL_HOST" ] || [ -n "$DB_HOST" ]; then
+    DB_CONN="mysql"
+    DB_HOST_VAL="${DB_HOST:-${MYSQLHOST:-${MYSQL_HOST:-127.0.0.1}}}"
+    DB_PORT_VAL="${DB_PORT:-${MYSQLPORT:-${MYSQL_PORT:-3306}}}"
+    DB_NAME_VAL="${DB_DATABASE:-${MYSQLDATABASE:-${MYSQL_DATABASE:-railway}}}"
+    DB_USER_VAL="${DB_USERNAME:-${MYSQLUSER:-${MYSQL_USER:-root}}}"
+    DB_PASS_VAL="${DB_PASSWORD:-${MYSQLPASSWORD:-${MYSQL_PASSWORD:-}}}"
+    echo "==> Using MySQL Database on $DB_HOST_VAL:$DB_PORT_VAL ($DB_NAME_VAL)"
+else
+    DB_CONN="sqlite"
+    DB_HOST_VAL="127.0.0.1"
+    DB_PORT_VAL="3306"
+    DB_NAME_VAL="/var/www/html/database/database.sqlite"
+    DB_USER_VAL="root"
+    DB_PASS_VAL=""
+    mkdir -p /var/www/html/database
+    touch /var/www/html/database/database.sqlite
+    chmod 777 /var/www/html/database /var/www/html/database/database.sqlite
+    echo "==> Using Embedded SQLite Database"
+fi
 
-# 4. Create / Update .env file using Embedded Database
-echo "==> Generating production .env file (Embedded SQLite)..."
+# 4. Create / Update .env file
+echo "==> Generating production .env file..."
 cat <<EOF > /var/www/html/.env
 APP_NAME="Medical Supplies System"
 APP_ENV=${APP_ENV:-production}
@@ -33,8 +49,12 @@ APP_URL=https://medicalll-production.up.railway.app
 LOG_CHANNEL=stderr
 LOG_LEVEL=debug
 
-DB_CONNECTION=sqlite
-DB_DATABASE=/var/www/html/database/database.sqlite
+DB_CONNECTION=${DB_CONN}
+DB_HOST=${DB_HOST_VAL}
+DB_PORT=${DB_PORT_VAL}
+DB_DATABASE=${DB_NAME_VAL}
+DB_USERNAME=${DB_USER_VAL}
+DB_PASSWORD=${DB_PASS_VAL}
 
 BROADCAST_DRIVER=log
 CACHE_DRIVER=file
@@ -55,19 +75,18 @@ chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /
 
 php artisan storage:link --force || true
 
-# 6. Execute Database Migrations and Seed Sample Users directly into Embedded DB
-echo "==> Migrating and seeding embedded database..."
+# 6. Execute Database Migrations and Seed Sample Users
+echo "==> Migrating and seeding database..."
 php artisan migrate --seed --force || php artisan migrate --force || echo "==> Migrations ready."
 
 # 7. Clear old cache and rebuild config cache
 php artisan optimize:clear || true
 php artisan config:cache || true
-php artisan view:cache || true
 
 # Ensure permissions before launch
 chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/database
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database /var/www/html/.env
 
 # 8. Start Apache in foreground
-echo "==> Launching Apache Web Server with Embedded Database..."
+echo "==> Launching Apache Web Server..."
 exec /usr/local/bin/apache2-foreground
