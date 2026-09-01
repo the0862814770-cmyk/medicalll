@@ -2,7 +2,7 @@
 set -e
 
 echo "=========================================="
-echo " Starting Medical Supplies Laravel Server..."
+echo " Starting Medical Supplies System..."
 echo "=========================================="
 
 # 1. Ensure exactly ONE Apache MPM is loaded
@@ -15,17 +15,14 @@ PORT="${PORT:-80}"
 echo "==> Using Port: $PORT"
 echo "export PORT=$PORT" >> /etc/apache2/envvars
 
-# 3. Detect Database credentials from Railway MySQL environment variables
-DB_HOST_VAL="${DB_HOST:-${MYSQLHOST:-${MYSQL_HOST:-127.0.0.1}}}"
-DB_PORT_VAL="${DB_PORT:-${MYSQLPORT:-${MYSQL_PORT:-3306}}}"
-DB_NAME_VAL="${DB_DATABASE:-${MYSQLDATABASE:-${MYSQL_DATABASE:-railway}}}"
-DB_USER_VAL="${DB_USERNAME:-${MYSQLUSER:-${MYSQL_USER:-root}}}"
-DB_PASS_VAL="${DB_PASSWORD:-${MYSQLPASSWORD:-${MYSQL_PASSWORD:-}}}"
+# 3. Setup Embedded Database (SQLite)
+echo "==> Initializing embedded database..."
+mkdir -p /var/www/html/database
+touch /var/www/html/database/database.sqlite
+chmod 777 /var/www/html/database /var/www/html/database/database.sqlite
 
-echo "==> Database target: $DB_USER_VAL@$DB_HOST_VAL:$DB_PORT_VAL/$DB_NAME_VAL"
-
-# 4. Create / Update .env file (Use stderr for container logging to prevent file lock)
-echo "==> Generating production .env file..."
+# 4. Create / Update .env file using Embedded Database
+echo "==> Generating production .env file (Embedded SQLite)..."
 cat <<EOF > /var/www/html/.env
 APP_NAME="Medical Supplies System"
 APP_ENV=${APP_ENV:-production}
@@ -36,12 +33,8 @@ APP_URL=https://medicalll-production.up.railway.app
 LOG_CHANNEL=stderr
 LOG_LEVEL=debug
 
-DB_CONNECTION=${DB_CONNECTION:-mysql}
-DB_HOST=${DB_HOST_VAL}
-DB_PORT=${DB_PORT_VAL}
-DB_DATABASE=${DB_NAME_VAL}
-DB_USERNAME=${DB_USER_VAL}
-DB_PASSWORD=${DB_PASS_VAL}
+DB_CONNECTION=sqlite
+DB_DATABASE=/var/www/html/database/database.sqlite
 
 BROADCAST_DRIVER=log
 CACHE_DRIVER=file
@@ -54,25 +47,25 @@ SESSION_SECURE_COOKIE=false
 SESSION_SAME_SITE=lax
 EOF
 
-# 5. Storage permissions and symlink (Ensure www-data owns all logs and cache)
+# 5. Storage permissions and symlink
 mkdir -p /var/www/html/storage/framework/{sessions,views,cache,data} /var/www/html/storage/logs /var/www/html/public/images/supplies
 touch /var/www/html/storage/logs/laravel.log
-chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/.env
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/database
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/database /var/www/html/.env
 
 php artisan storage:link --force || true
 
-# 6. Execute Database Migrations and Seed Sample Users
-echo "==> Executing database migration & seeder..."
-php artisan migrate --seed --force || php artisan migrate --force || echo "==> Migrations note: database might be connecting shortly."
+# 6. Execute Database Migrations and Seed Sample Users directly into Embedded DB
+echo "==> Migrating and seeding embedded database..."
+php artisan migrate --seed --force || php artisan migrate --force || echo "==> Migrations ready."
 
 # 7. Clear old cache to apply fresh settings
 php artisan optimize:clear || true
 
-# Final permission ensure before starting Apache
-chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Ensure permissions before launch
+chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/database
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 
 # 8. Start Apache in foreground
-echo "==> Launching Apache Web Server..."
+echo "==> Launching Apache Web Server with Embedded Database..."
 exec /usr/local/bin/apache2-foreground

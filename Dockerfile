@@ -3,10 +3,12 @@ FROM php:8.2-apache
 # Set default port
 ENV PORT=80
 
-# Install system dependencies
+# Install system dependencies & SQLite library
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    sqlite3 \
+    libsqlite3-dev \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
@@ -19,9 +21,9 @@ RUN apt-get update && apt-get install -y \
     dos2unix \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Configure & Install PHP Extensions
+# Configure & Install PHP Extensions (including pdo_sqlite & pdo_mysql)
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install gd pdo_mysql mbstring exif pcntl bcmath zip
+    && docker-php-ext-install gd pdo_mysql pdo_sqlite mbstring exif pcntl bcmath zip
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -49,15 +51,17 @@ RUN dos2unix docker-entrypoint.sh \
     && cp docker-entrypoint.sh /docker-entrypoint.sh \
     && chmod +x /docker-entrypoint.sh
 
-# Set storage and cache permissions
+# Set storage, database and cache permissions
 RUN mkdir -p storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
     bootstrap/cache \
     public/uploads \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public \
-    && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
+    database \
+    && touch database/database.sqlite \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/database \
+    && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/database
 
 EXPOSE 80
 

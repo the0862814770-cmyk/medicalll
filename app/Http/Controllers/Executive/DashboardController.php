@@ -28,11 +28,15 @@ class DashboardController extends Controller
         ];
 
         // กราฟเบิกจ่ายรายเดือน (12 เดือนย้อนหลัง)
+        $isSqlite = DB::getDriverName() === 'sqlite';
+        $yearExpr = $isSqlite ? "CAST(strftime('%Y', created_at) AS INTEGER) as year" : "YEAR(created_at) as year";
+        $monthExpr = $isSqlite ? "CAST(strftime('%m', created_at) AS INTEGER) as month" : "MONTH(created_at) as month";
+
         $monthlyDispensing = SupplyTransaction::where('type', 'dispense')
             ->where('created_at', '>=', now()->subMonths(12))
             ->select(
-                DB::raw('YEAR(created_at) as year'),
-                DB::raw('MONTH(created_at) as month'),
+                DB::raw($yearExpr),
+                DB::raw($monthExpr),
                 DB::raw('SUM(quantity) as total')
             )
             ->groupBy('year', 'month')

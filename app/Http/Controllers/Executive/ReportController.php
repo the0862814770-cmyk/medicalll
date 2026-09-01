@@ -110,20 +110,25 @@ class ReportController extends Controller
         $query = SupplyTransaction::where('type', 'dispense')
             ->whereBetween('created_at', [$dateFrom, $dateTo . ' 23:59:59']);
 
+        $isSqlite = DB::getDriverName() === 'sqlite';
+        $yearExpr = $isSqlite ? "CAST(strftime('%Y', created_at) AS INTEGER) as year" : "YEAR(created_at) as year";
+        $monthExpr = $isSqlite ? "CAST(strftime('%m', created_at) AS INTEGER) as month" : "MONTH(created_at) as month";
+        $dateExpr = $isSqlite ? "strftime('%Y-%m-%d', created_at) as date" : "DATE(created_at) as date";
+
         if ($period === 'daily') {
             $data = $query->select(
-                DB::raw('DATE(created_at) as date'),
+                DB::raw($dateExpr),
                 DB::raw('SUM(quantity) as total')
             )->groupBy('date')->orderBy('date')->get();
         } elseif ($period === 'monthly') {
             $data = $query->select(
-                DB::raw('YEAR(created_at) as year'),
-                DB::raw('MONTH(created_at) as month'),
+                DB::raw($yearExpr),
+                DB::raw($monthExpr),
                 DB::raw('SUM(quantity) as total')
             )->groupBy('year', 'month')->orderBy('year')->orderBy('month')->get();
         } else {
             $data = $query->select(
-                DB::raw('YEAR(created_at) as year'),
+                DB::raw($yearExpr),
                 DB::raw('SUM(quantity) as total')
             )->groupBy('year')->orderBy('year')->get();
         }
