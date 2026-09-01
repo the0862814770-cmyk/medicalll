@@ -9,32 +9,36 @@ if [ -f /etc/apache2/envvars ]; then
     . /etc/apache2/envvars
 fi
 
-# 2. Configure Dynamic Port for Railway
+# 2. Configure Dynamic Port for Railway (Target ONLY port 80, do NOT touch 443)
 PORT="${PORT:-80}"
-echo "==> Configuring Apache for port: $PORT"
-sed -i "s/Listen [0-9]*/Listen $PORT/g" /etc/apache2/ports.conf
-sed -i "s/<VirtualHost \*:[0-9]*>/<VirtualHost *:$PORT>/g" /etc/apache2/sites-available/000-default.conf
+echo "==> Configuring Apache to listen on port: $PORT"
+sed -i "s/^Listen 80\$/Listen $PORT/" /etc/apache2/ports.conf || true
+sed -i "s/<VirtualHost \*:80>/<VirtualHost \*:$PORT>/g" /etc/apache2/sites-available/000-default.conf || true
 
-# 3. Check APP_KEY
+# 3. Suppress Apache ServerName warning
+echo "ServerName localhost" > /etc/apache2/conf-available/servername.conf
+a2enconf servername > /dev/null 2>&1 || true
+
+# 4. Check APP_KEY
 if [ -z "$APP_KEY" ]; then
     echo "==> APP_KEY not detected, setting fallback key..."
     export APP_KEY="base64:rRXZZCi7D+kBcVU2IKlXwXlYpXqTmHxeE/Edw02eK4A="
 fi
 
-# 4. Clear old caches
+# 5. Clear application caches
 echo "==> Clearing application caches..."
 php artisan optimize:clear || true
 
-# 5. Create storage symlink
+# 6. Create storage symlink
 echo "==> Linking storage..."
 php artisan storage:link || true
 
-# 6. Run Database Migrations
+# 7. Run Database Migrations (non-blocking)
 if [ -n "$DB_HOST" ]; then
-    echo "==> Running migrations for host: $DB_HOST"
-    php artisan migrate --force || echo "==> Migration warning: database not reachable yet, skipping..."
+    echo "==> Database host found ($DB_HOST). Running migrations..."
+    php artisan migrate --force || echo "==> Migration warning: database not ready yet."
 fi
 
-# 7. Start Apache Web Server using official apache2-foreground
-echo "==> Launching Apache Web Server..."
+# 8. Start Apache in foreground
+echo "==> Launching Apache Web Server on port $PORT..."
 exec apache2-foreground
