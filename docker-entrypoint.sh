@@ -1,30 +1,33 @@
 #!/bin/bash
-set -e
 
-echo "==> Starting Medical Supplies System..."
+echo "=========================================="
+echo " Starting Medical Supplies System..."
+echo "=========================================="
 
-# Configure dynamic PORT for Railway/Render
-if [ -n "$PORT" ]; then
-    echo "==> Configuring Apache to listen on port $PORT"
-    sed -i "s/Listen 80/Listen $PORT/" /etc/apache2/ports.conf
-    sed -i "s/:80/:$PORT/" /etc/apache2/sites-available/000-default.conf
+# 1. Configure Port for Railway
+PORT="${PORT:-80}"
+echo "==> Configuring Apache for port: $PORT"
+sed -i "s/Listen [0-9]*/Listen $PORT/g" /etc/apache2/ports.conf
+sed -i "s/<VirtualHost \*:[0-9]*>/<VirtualHost *:$PORT>/g" /etc/apache2/sites-available/000-default.conf
+
+# 2. Check APP_KEY
+if [ -z "$APP_KEY" ]; then
+    echo "==> APP_KEY not detected, generating default key..."
+    export APP_KEY="base64:rRXZZCi7D+kBcVU2IKlXwXlYpXqTmHxeE/Edw02eK4A="
 fi
 
-# Ensure storage link
-echo "==> Creating storage link..."
+# 3. Clear old caches to prevent stale config issues
+echo "==> Clearing application caches..."
+php artisan optimize:clear || true
+
+# 4. Create storage symlink
+echo "==> Linking storage..."
 php artisan storage:link || true
 
-# Run database migrations
-if [ -n "$DB_HOST" ]; then
-    echo "==> Database host found ($DB_HOST). Running migrations..."
-    php artisan migrate --force || echo "Migration warning: could not run migrations immediately. Will continue..."
-fi
+# 5. Run Database Migrations (non-blocking)
+echo "==> Checking database migration..."
+php artisan migrate --force || echo "==> Migration skipped or waiting for DB connection."
 
-# Cache routes and config for high performance
-echo "==> Caching configuration..."
-php artisan config:cache || true
-php artisan route:cache || true
-php artisan view:cache || true
-
-echo "==> Starting Apache web server..."
-exec apache2-foreground
+# 6. Start Apache Web Server in Foreground
+echo "==> Launching Apache Web Server..."
+exec apache2 -D FOREGROUND

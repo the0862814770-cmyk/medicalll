@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Install system dependencies & libraries
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -40,14 +40,13 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . .
 
-# Fix Windows CRLF line endings for Linux execution
-RUN dos2unix docker-entrypoint.sh \
-    && chmod +x docker-entrypoint.sh \
-    && cp docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh \
-    && chmod +x /usr/local/bin/docker-entrypoint.sh
-
 # Install composer dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
+
+# Fix line endings and permissions for entrypoint
+RUN dos2unix docker-entrypoint.sh \
+    && chmod +x docker-entrypoint.sh \
+    && cp docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Ensure storage directories exist and have proper permissions
 RUN mkdir -p storage/framework/cache/data \
@@ -57,8 +56,8 @@ RUN mkdir -p storage/framework/cache/data \
     bootstrap/cache \
     public/uploads \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
+    && chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
 
 EXPOSE 80
 
-CMD ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "/usr/local/bin/docker-entrypoint.sh"]
