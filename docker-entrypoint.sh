@@ -24,7 +24,7 @@ DB_PASS_VAL="${DB_PASSWORD:-${MYSQLPASSWORD:-${MYSQL_PASSWORD:-}}}"
 
 echo "==> Database target: $DB_USER_VAL@$DB_HOST_VAL:$DB_PORT_VAL/$DB_NAME_VAL"
 
-# 4. Create / Update .env file with detected DB and APP settings
+# 4. Create / Update .env file with robust Session & Cookie settings
 echo "==> Generating production .env file..."
 cat <<EOF > /var/www/html/.env
 APP_NAME="ระบบบริหารคลังเวชภัณฑ์ มรภ.นครศรีธรรมราช"
@@ -47,8 +47,9 @@ BROADCAST_DRIVER=log
 CACHE_DRIVER=file
 FILESYSTEM_DISK=public
 QUEUE_CONNECTION=sync
-SESSION_DRIVER=file
+SESSION_DRIVER=cookie
 SESSION_LIFETIME=120
+SESSION_SECURE_COOKIE=false
 EOF
 
 # 5. Storage permissions and symlink
@@ -62,7 +63,7 @@ php artisan storage:link --force || true
 echo "==> Executing database migration & seeder..."
 php artisan migrate --seed --force || php artisan migrate --force || echo "==> Migrations note: database might be connecting shortly."
 
-# 7. Clear old cache to apply fresh DB credentials
+# 7. Clear old cache to apply fresh settings
 php artisan optimize:clear || true
 
 # 8. Start Apache in foreground
