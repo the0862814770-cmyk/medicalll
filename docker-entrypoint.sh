@@ -59,12 +59,14 @@ php artisan storage:link --force || true
 echo "==> Migrating and seeding embedded database..."
 php artisan migrate --seed --force || php artisan migrate --force || echo "==> Migrations ready."
 
-# 7. Clear old cache to apply fresh settings
+# 7. Clear old cache and rebuild config cache
 php artisan optimize:clear || true
+php artisan config:cache || true
+php artisan view:cache || true
 
 # Ensure permissions before launch
 chmod -R 777 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public /var/www/html/database
-chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database /var/www/html/.env
 
 # 8. Start Apache in foreground
 echo "==> Launching Apache Web Server with Embedded Database..."
