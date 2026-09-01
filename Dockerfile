@@ -1,5 +1,8 @@
 FROM php:8.2-apache
 
+# Set default port
+ENV PORT=80
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
@@ -23,14 +26,6 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configure Apache DocumentRoot to Laravel /public
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
-
-# Allow .htaccess Overrides
-RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
-
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
@@ -40,15 +35,20 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . .
 
+# Copy custom Apache configurations with native ${PORT} support
+COPY docker/ports.conf /etc/apache2/ports.conf
+COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
+
 # Install composer dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
-# Fix line endings and permissions for entrypoint
+# Fix line endings & permissions for entrypoint
 RUN dos2unix docker-entrypoint.sh \
     && chmod +x docker-entrypoint.sh \
-    && cp docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+    && cp docker-entrypoint.sh /docker-entrypoint.sh \
+    && chmod +x /docker-entrypoint.sh
 
-# Ensure storage directories exist and have proper permissions
+# Set storage and cache permissions
 RUN mkdir -p storage/framework/cache/data \
     storage/framework/sessions \
     storage/framework/views \
@@ -60,4 +60,4 @@ RUN mkdir -p storage/framework/cache/data \
 
 EXPOSE 80
 
-ENTRYPOINT ["/bin/bash", "/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/docker-entrypoint.sh"]
